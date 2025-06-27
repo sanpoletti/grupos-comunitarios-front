@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Grupos Comunitarios - Frontend
 
-## Getting Started
+Este frontend permite registrar personas que retiran raciones en grupos comunitarios, verificando si ya están registradas y asociándolas a un hogar o grupo.
 
-First, run the development server:
+## 🔧 Tecnologías utilizadas
+
+- [Next.js 14 (App Router)](https://nextjs.org/)
+- React
+- TypeScript
+- TailwindCSS
+- Fetch API
+
+## 🚀 Funcionalidades
+
+- Registro de personas con validación por número de documento.
+- Verificación en tiempo real si ya existe la persona registrada.
+- Asociación de personas a un grupo comunitario (`hogar`).
+- Formulario dinámico e interactivo.
+
+## 📁 Estructura principal
+
+- `/app/registro/page.tsx` – Página principal del formulario de registro.
+- `lib/prisma.ts` – Conexión al backend via API (desde el frontend).
+- `api/personas` y `api/hogares` – Rutas del backend que consume.
+
+---
+
+## 🖥️ Instrucciones para desarrollo local
+
+### 1. Clonar el repositorio
 
 ```bash
+git clone https://github.com/sanpoletti/grupos-comunitarios-front.git
+cd grupos-comunitarios-front
+
+2. Instalar dependencias
+npm install
+
+3. Configurar variables de entorno (si aplica)
+Crear un archivo .env.local si necesitás apuntar a un backend diferente:
+Editar
+NEXT_PUBLIC_API_URL=http://localhost:3000
+Por defecto el frontend asume que el backend corre en el mismo host (localhost:3000).
+
+4. Ejecutar el servidor de desarrollo
+
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+npm run dev -- -p3001
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+La aplicación estará disponible en http://localhost:3001 si usás un puerto distinto (o el por defecto si no configuraste nada).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+📝 Registro de persona
+El formulario permite ingresar:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Tipo y número de documento (con validación y búsqueda)
 
-## Learn More
+Nombre y apellido (en mayúsculas)
 
-To learn more about Next.js, take a look at the following resources:
+Sexo
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Fecha de nacimiento
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Lugar de residencia
 
-## Deploy on Vercel
+Cantidad de raciones
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Grupo comunitario (hogar) – desplegable cargado desde la API
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+🧑‍💻 Autoría
+Proyecto desarrollado por Sandra Poletti junto al equipo de Grupos Comunitarios del Gobierno de la Ciudad de Buenos Aires.
+
+
