@@ -18,7 +18,7 @@ export default function RegistroPage() {
     lugarResidencia: 'CABA',
     cantidadRaciones: 1,
     IDHogar: '',
-    observaciones: '', // agregado
+    observaciones: '',
   };
 
   const [formData, setFormData] = useState(initialState);
@@ -55,18 +55,10 @@ export default function RegistroPage() {
     try {
       const res = await fetch(`http://localhost:3000/api/personas?nroDocumento=${nro}`);
       const data = await res.json();
-      const yaRegistradaEsteMes = data.some((p: any) => {
-        const fecha = new Date(p.fechaRegistro);
-        const hoy = new Date();
-        return (
-          fecha.getMonth() === hoy.getMonth() &&
-          fecha.getFullYear() === hoy.getFullYear()
-        );
-      });
 
-      if (yaRegistradaEsteMes) {
+      if (data.length > 0) {
         setPersonaYaRegistrada(true);
-        setErrorDocumento('Ya registrada este mes. Solo completar raciones y grupo.');
+        setErrorDocumento('Persona ya registrada. Solo completar raciones y grupo.');
         setFormData(prev => ({
           ...prev,
           nombre: data[0].nombre,
@@ -74,7 +66,7 @@ export default function RegistroPage() {
           fechaNacimiento: data[0].fechaNacimiento,
           sexo: data[0].sexo,
           lugarResidencia: data[0].lugarResidencia,
-          observaciones: '', // opcional: podés dejar vacío o traer la última si querés
+          observaciones: '',
         }));
       } else {
         setPersonaYaRegistrada(false);
@@ -87,7 +79,9 @@ export default function RegistroPage() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     let newValue = value;
 
