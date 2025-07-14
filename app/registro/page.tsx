@@ -8,6 +8,8 @@ type Hogar = {
 };
 
 export default function RegistroPage() {
+  const hoyStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
   const initialState = {
     IDTIPODOCUMENTO: 1,
     nroDocumento: '',
@@ -19,6 +21,7 @@ export default function RegistroPage() {
     cantidadRaciones: 1,
     IDHogar: '',
     observaciones: '',
+    fechaRetiro: hoyStr, // default a hoy
   };
 
   const [formData, setFormData] = useState(initialState);
@@ -58,7 +61,7 @@ export default function RegistroPage() {
 
       if (data.length > 0) {
         setPersonaYaRegistrada(true);
-        setErrorDocumento('Persona ya registrada. Solo completar raciones y grupo.');
+        setErrorDocumento('Persona ya registrada. Solo completar raciones, grupo y fecha de retiro.');
         setFormData(prev => ({
           ...prev,
           nombre: data[0].nombre,
@@ -67,10 +70,12 @@ export default function RegistroPage() {
           sexo: data[0].sexo,
           lugarResidencia: data[0].lugarResidencia,
           observaciones: '',
+          fechaRetiro: data[0].fechaRetiro || hoyStr, // si ya tiene fechaRetiro, la carga, sino hoy por default
         }));
       } else {
         setPersonaYaRegistrada(false);
         setErrorDocumento('');
+        setFormData(prev => ({ ...prev, fechaRetiro: hoyStr })); // si no está registrada, fechaRetiro default hoy
       }
     } catch {
       setErrorDocumento('Error al verificar documento.');
@@ -111,6 +116,24 @@ export default function RegistroPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const hoy = new Date();
+
+    if (formData.fechaNacimiento) {
+      const nacimiento = new Date(formData.fechaNacimiento);
+      if (nacimiento > hoy) {
+        alert('La fecha de nacimiento no puede ser mayor a la fecha actual.');
+        return;
+      }
+    }
+
+    if (formData.fechaRetiro) {
+      const retiro = new Date(formData.fechaRetiro);
+      if (retiro > hoy) {
+        alert('La fecha de retiro no puede ser mayor a la fecha actual.');
+        return;
+      }
+    }
 
     const res = await fetch('http://localhost:3000/api/personas', {
       method: 'POST',
@@ -176,9 +199,11 @@ export default function RegistroPage() {
           </div>
         </div>
 
-        {/* Solo mostrar si no está ya registrada */}
-        {!personaYaRegistrada && (
+        {/* Mostrar campos para persona registrada o nueva */}
+
+        {!personaYaRegistrada ? (
           <>
+            {/* Campos para persona nueva */}
             {/* Fila 2: Nombre + Apellido */}
             <div className="flex space-x-4">
               <div className="flex-1">
@@ -187,7 +212,6 @@ export default function RegistroPage() {
                   name="nombre"
                   value={formData.nombre}
                   onChange={handleChange}
-                  disabled={personaYaRegistrada}
                   className="w-full border border-gray-300 p-2 rounded"
                   required
                 />
@@ -199,7 +223,6 @@ export default function RegistroPage() {
                   name="apellido"
                   value={formData.apellido}
                   onChange={handleChange}
-                  disabled={personaYaRegistrada}
                   className="w-full border border-gray-300 p-2 rounded"
                   required
                 />
@@ -214,7 +237,6 @@ export default function RegistroPage() {
                   name="sexo"
                   value={formData.sexo}
                   onChange={handleChange}
-                  disabled={personaYaRegistrada}
                   className="w-full border border-gray-300 p-2 rounded"
                   required
                 >
@@ -233,14 +255,13 @@ export default function RegistroPage() {
                   name="fechaNacimiento"
                   value={formData.fechaNacimiento}
                   onChange={handleChange}
-                  disabled={personaYaRegistrada}
                   className="w-full border border-gray-300 p-2 rounded"
                   required
                 />
               </div>
             </div>
 
-            {/* Fila 4: Lugar Residencia */}
+            {/* Lugar de Residencia */}
             <div>
               <label className="block mb-1 text-sm font-semibold text-sky-700">
                 Lugar de Residencia
@@ -249,7 +270,6 @@ export default function RegistroPage() {
                 name="lugarResidencia"
                 value={formData.lugarResidencia}
                 onChange={handleChange}
-                disabled={personaYaRegistrada}
                 className="w-full border border-gray-300 p-2 rounded"
                 required
               >
@@ -258,10 +278,42 @@ export default function RegistroPage() {
                 <option value="Otro">Otro</option>
               </select>
             </div>
+
+            {/* Fecha Retiro */}
+            <div>
+              <label className="block mb-1 text-sm font-semibold text-sky-700">
+                Fecha de Retiro
+              </label>
+              <input
+                type="date"
+                name="fechaRetiro"
+                value={formData.fechaRetiro}
+                onChange={handleChange}
+                className="w-full border border-gray-300 p-2 rounded"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Campos para persona ya registrada */}
+            {/* Solo mostrar fechaRetiro editable */}
+            <div>
+              <label className="block mb-1 text-sm font-semibold text-sky-700">
+                Fecha de Retiro
+              </label>
+              <input
+                type="date"
+                name="fechaRetiro"
+                value={formData.fechaRetiro}
+                onChange={handleChange}
+                className="w-full border border-gray-300 p-2 rounded"
+                required
+              />
+            </div>
           </>
         )}
 
-        {/* Fila 5: Cantidad de Raciones + Grupo */}
+        {/* Raciones + Grupo */}
         <div className="flex space-x-4">
           <div className="flex-1">
             <label className="block mb-1 text-sm font-semibold text-sky-700">
@@ -301,7 +353,7 @@ export default function RegistroPage() {
           </div>
         </div>
 
-        {/* Nuevo campo observaciones */}
+        {/* Observaciones */}
         <div>
           <label className="block mb-1 text-sm font-semibold text-sky-700">
             Observaciones
@@ -317,18 +369,31 @@ export default function RegistroPage() {
           />
         </div>
 
-        {/* Botón */}
-        <button
-          type="submit"
-          disabled={buscando}
-          className={`w-full p-2 rounded text-white ${
-            buscando
+        {/* Botones */}
+        <div className="flex space-x-4">
+          <button
+            type="submit"
+            disabled={buscando}
+            className={`flex-1 p-2 rounded text-white ${buscando
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-sky-400 hover:bg-sky-500'
-          }`}
-        >
-          Registrar
-        </button>
+              }`}
+          >
+            Registrar
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setFormData(initialState);
+              setPersonaYaRegistrada(false);
+              setErrorDocumento('');
+            }}
+            className="flex-1 p-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800"
+          >
+            Cancelar
+          </button>
+        </div>
       </form>
     </main>
   );
