@@ -27,7 +27,7 @@ export default function GrupoSelector({ hogares, value, onChange, disabled }: Pr
   return (
     <div>
       <label className="block mb-1 text-sm font-semibold text-sky-700">
-        Grupo Comunitario/Asistido
+        Grupo
       </label>
       <input
         type="text"

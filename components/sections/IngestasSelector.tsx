@@ -15,11 +15,33 @@ const IngestasSelector: React.FC<IngestasSelectorProps> = ({
   cena,
   onChange,
 }) => {
+  // Funciones de ejemplo para los botones
+  const handleRetiro = () => {
+    console.log('Retiro presionado');
+    onChange('desayuna', false);
+    onChange('almuerza', false);
+    onChange('merienda', false);
+    onChange('cena', false);
+    // más adelante podrías activar un flag de "Retiro"
+  };
+
+  const handleIngesta = () => {
+    console.log('Ingesta presionado');
+    onChange('desayuna', true);
+    onChange('almuerza', true);
+    onChange('merienda', true);
+    onChange('cena', true);
+  };
+
+  const handleAceptar = () => {
+    console.log('Aceptar presionado');
+    // lógica futura
+  };
+
   return (
     <div className="mt-3 mb-5 p-3 border rounded bg-light">
       <label className="form-label fw-bold mb-2 d-block">Ingestas / Retira</label>
 
-      {/* FORZAMOS flex en línea */}
       <div
         style={{
           display: 'flex',
@@ -65,6 +87,52 @@ const IngestasSelector: React.FC<IngestasSelectorProps> = ({
           />
           Cena
         </label>
+      </div>
+
+      {/* Botones debajo */}
+      <div className="mt-3" style={{ display: 'flex', gap: '0.5rem' }}>
+        <button
+          type="button"
+          style={{
+            backgroundColor: '#0d6efd',
+            color: 'white',
+            border: 'none',
+            padding: '0.25rem 0.75rem',
+            borderRadius: '0.25rem',
+            cursor: 'pointer',
+          }}
+          onClick={handleRetiro}
+        >
+          Retiro
+        </button>
+        <button
+          type="button"
+          style={{
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            padding: '0.25rem 0.75rem',
+            borderRadius: '0.25rem',
+            cursor: 'pointer',
+          }}
+          onClick={handleIngesta}
+        >
+          Ración
+        </button>
+        <button
+          type="button"
+          style={{
+            backgroundColor: '#198754',
+            color: 'white',
+            border: 'none',
+            padding: '0.25rem 0.75rem',
+            borderRadius: '0.25rem',
+            cursor: 'pointer',
+          }}
+          onClick={handleAceptar}
+        >
+          Aceptar
+        </button>
       </div>
     </div>
   );

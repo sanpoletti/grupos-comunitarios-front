@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 import GrupoSelector, { Hogar as HogarSelectorType } from '@/components/selectors/GrupoSelector'
 import DocumentoInput from '@/components/forms/DocumentoInput'
@@ -29,7 +29,6 @@ export default function RegistroPage() {
     almuerza: true,
     merienda: false,
     cena: true,
-    idTipoFamiliar: '' as number | '',
   }
 
   const [formData, setFormData] = useState(initialState)
@@ -41,7 +40,7 @@ export default function RegistroPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [integrantes, setIntegrantes] = useState<Integrante[]>([])
 
-  // ---------- util para contar personas únicas (integrantes + titular) ----------
+  // contar personas únicas
   const computeHouseholdCount = (
     integrantesList: Integrante[],
     titularDoc: { tipo?: string | number; nro?: string }
@@ -53,7 +52,6 @@ export default function RegistroPage() {
     return new Set(ids).size
   }
 
-  // Recalcular cuando cambian integrantes o documento del titular
   useEffect(() => {
     const count = computeHouseholdCount(integrantes, {
       tipo: formData.IDTIPODOCUMENTO,
@@ -62,19 +60,19 @@ export default function RegistroPage() {
     setFormData(prev => ({ ...prev, cantidadPersonasHogar: count }))
   }, [integrantes, formData.IDTIPODOCUMENTO, formData.nroDocumento])
 
-  // --- Carga de hogares ---
   useEffect(() => {
     const fetchHogares = async () => {
       try {
         const res = await fetch('http://localhost:3000/api/hogares')
         if (!res.ok) throw new Error('Error al obtener hogares')
         const data = await res.json()
-        const hogaresConvertidos: Hogar[] = data.map((h: any) => ({
-          idHogar: h.idHogar,
-          NombreGrupo: h.NombreGrupo?.trim() || '',
-          nroRegistro: Number(h.nroRegistro),
-        }))
-        setHogares(hogaresConvertidos)
+        setHogares(
+          data.map((h: any) => ({
+            idHogar: h.idHogar,
+            NombreGrupo: h.NombreGrupo?.trim() || '',
+            nroRegistro: Number(h.nroRegistro),
+          }))
+        )
       } catch (error) {
         console.error('Error al cargar hogares:', error)
         alert('No se pudieron cargar los grupos comunitarios.')
@@ -83,23 +81,20 @@ export default function RegistroPage() {
     fetchHogares()
   }, [])
 
-  // --- Carga de tipos de familiares ---
   useEffect(() => {
     const fetchTiposFamiliares = async () => {
       try {
         const res = await fetch('http://localhost:3000/api/tipos-familiares')
         if (!res.ok) throw new Error('Error al obtener parentescos')
-        const data = await res.json()
-        setTiposFamiliares(data)
+        setTiposFamiliares(await res.json())
       } catch (error) {
-        console.error('Error al cargar parentescos:', error)
+        console.error('Error al cargar tipos familiares:', error)
         alert('No se pudieron cargar los tipos de familiares.')
       }
     }
     fetchTiposFamiliares()
   }, [])
 
-  // --- Documento ---
   const handleDocumentBlur = async () => {
     const nro = formData.nroDocumento
     if (nro.length !== 8) {
@@ -124,10 +119,10 @@ export default function RegistroPage() {
           sexo: data[0].sexo,
           lugarResidencia: data[0].lugarResidencia,
           observaciones: data[0].observaciones || '',
-          desayuna: data[0].desayuna,
-          almuerza: data[0].almuerza,
-          merienda: data[0].merienda,
-          cena: data[0].cena,
+          desayuna: data[0].desayuna ?? false,
+          almuerza: data[0].almuerza ?? false,
+          merienda: data[0].merienda ?? false,
+          cena: data[0].cena ?? false,
         }))
       } else {
         setPersonaYaRegistrada(false)
@@ -140,42 +135,70 @@ export default function RegistroPage() {
     }
   }
 
-  // --- Manejo de cambios ---
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value, type, checked } = e.target as HTMLInputElement
-    let newValue: string | number | boolean = value
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+) => {
+  const { name, value, type, checked } = e.target as HTMLInputElement;
 
-    if (type === 'checkbox') newValue = checked
-    if (name === 'nombre' || name === 'apellido') newValue = value.toUpperCase()
-    if (name === 'nroDocumento' && !/^\d{0,8}$/.test(newValue as string)) return
+  let newValue: string | number | boolean = value;
 
+  // Checkbox
+  if (type === 'checkbox') newValue = checked;
+
+  // Convertir nombre y apellido a mayúsculas
+  if (name === 'nombre' || name === 'apellido') newValue = value.toUpperCase();
+
+  // Validar nroDocumento: máximo 8 dígitos
+  if (name === 'nroDocumento' && !/^\d{0,8}$/.test(newValue as string)) return;
+
+  if (name === 'nroDocumento') {
+    // Cuando cambia el documento, blanquear datos de persona y lista de integrantes
     setFormData(prev => ({
       ...prev,
-      [name]:
-        name === 'IDTIPODOCUMENTO' ||
-        name === 'cantidadRaciones' ||
-        name === 'cantidadPersonasHogar' ||
-        name === 'idTipoFamiliar'
-          ? newValue === '' ? '' : Number(newValue)
-          : name === 'IDHogar'
-          ? newValue === '' ? '' : Number(newValue)
-          : newValue,
-    }))
+      nroDocumento: value, // nuevo documento
+      nombre: '',
+      apellido: '',
+      sexo: 'F',
+      fechaNacimiento: '',
+      lugarResidencia: 'CABA',
+      observaciones: '',
+      cantidadRaciones: 1,
+      cantidadPersonasHogar: 0,
+      IDHogar: prev.IDHogar, // mantener grupo
+    }));
 
-    if (name === 'nroDocumento') {
-      setPersonaYaRegistrada(false)
-      setErrorDocumento('')
-    }
+    setIntegrantes([]); // limpiamos la lista de integrantes
+    setPersonaYaRegistrada(false);
+    setErrorDocumento('');
+    return; // salimos porque ya seteamos los valores
   }
+
+  // Para los demás campos
+  setFormData(prev => ({
+    ...prev,
+    [name]:
+      name === 'IDTIPODOCUMENTO' ||
+      name === 'cantidadRaciones' ||
+      name === 'cantidadPersonasHogar'
+        ? newValue === '' ? '' : Number(newValue)
+        : name === 'IDHogar'
+        ? newValue === '' ? '' : Number(newValue)
+        : newValue,
+  }));
+
+  // Si el usuario modifica tipo de documento, reiniciamos chequeo
+  if (name === 'IDTIPODOCUMENTO') {
+    setPersonaYaRegistrada(false);
+    setErrorDocumento('');
+  }
+};
+
 
   const handleGrupoChange = (val: number | '') => {
     setFormData(prev => ({ ...prev, IDHogar: val }))
   }
 
-  // --- Submit ---
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     const hoy = new Date()
@@ -203,116 +226,113 @@ export default function RegistroPage() {
 
   return (
     <main className="max-w-lg mx-auto p-6 bg-white rounded shadow mt-10">
-      <h1 className="text-2xl font-bold mb-6 text-sky-600 text-center">Registro de Persona</h1>
+      <h1 className="text-2xl font-bold mb-6 text-sky-600 text-center">Registro de Personas - Hogares</h1>
 
-      <CardSection title="Datos de la Persona">
-        <GrupoSelector
-          hogares={hogares}
-          value={formData.IDHogar}
-          onChange={handleGrupoChange}
-          disabled={buscando}
-        />
+      <form onSubmit={handleSubmit}>
+        <CardSection title="">
+          <GrupoSelector
+            hogares={hogares}
+            value={formData.IDHogar}
+            onChange={handleGrupoChange}
+            disabled={buscando}
+          />
 
-        <IngestasSelector
-          desayuna={formData.desayuna}
-          almuerza={formData.almuerza}
-          merienda={formData.merienda}
-          cena={formData.cena}
-          onChange={(field, value) =>
-            setFormData(prev => ({ ...prev, [field]: value }))
-          }
-        />
+          <IngestasSelector
+            desayuna={formData.desayuna ?? false}
+            almuerza={formData.almuerza ?? false}
+            merienda={formData.merienda ?? false}
+            cena={formData.cena ?? false}
+            onChange={(field, value) =>
+              setFormData(prev => ({ ...prev, [field]: value }))
+            }
+          />
 
-        <DocumentoInput
-          IDTIPODOCUMENTO={formData.IDTIPODOCUMENTO}
-          nroDocumento={formData.nroDocumento}
-          buscando={buscando}
-          personaYaRegistrada={personaYaRegistrada}
-          errorDocumento={errorDocumento}
-          onChange={handleChange}
-          onBlur={handleDocumentBlur}
-        />
+          <DocumentoInput
+            IDTIPODOCUMENTO={formData.IDTIPODOCUMENTO}
+            nroDocumento={formData.nroDocumento}
+            buscando={buscando}
+            personaYaRegistrada={personaYaRegistrada}
+            errorDocumento={errorDocumento}
+            onChange={handleChange}
+            onBlur={handleDocumentBlur}
+          />
 
-        <PersonaForm
-          formData={formData}
-          tiposFamiliares={tiposFamiliares}
-          personaYaRegistrada={personaYaRegistrada}
-          buscando={buscando}
-          onChange={handleChange}
-          onSubmit={handleSubmit}
-        />
+          <PersonaForm
+            formData={formData}
+            tiposFamiliares={tiposFamiliares}
+            personaYaRegistrada={personaYaRegistrada}
+            buscando={buscando}
+            onChange={handleChange}
+           
+          />
 
-        {/* Mostrar cantidad de personas calculada */}
-        <div className="mt-4 text-sm font-semibold">
-          Total personas en el hogar: {formData.cantidadPersonasHogar}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          className="mt-4 w-full p-2 bg-emerald-500 text-white rounded hover:bg-emerald-600"
-        >
-          Agregar Integrantes
-        </button>
-
-        {integrantes.length > 0 && (
-          <div className="mt-4 grid gap-2 text-sm">
-            {integrantes.map((i, idx) => (
-              <div
-                key={idx}
-                className="flex justify-between items-center p-2 border rounded bg-gray-50"
-              >
-                <div>
-                  <strong>{i.nombre} {i.apellido}</strong>
-                  {i.dni && ` - DNI: ${i.dni}`}
-                  {i.fechaNacimiento && ` - Nac: ${i.fechaNacimiento}`}
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 text-sm font-semibold">
+            Total personas en el hogar: {formData.cantidadPersonasHogar}
           </div>
-        )}
-      </CardSection>
 
-      <IntegrantesModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={setIntegrantes}
-        integrantes={integrantes}
-        tiposDocumento={[
-          { id: 3, nombre: 'DNI' },
-          { id: 10, nombre: 'PRC' },
-          { id: 1, nombre: 'LC' },
-          { id: 2, nombre: 'LE' },
-          { id: 13, nombre: 'CI' },
-          { id: 0, nombre: 'SD' },
-        ]}
-        tiposParentesco={(tiposFamiliares || []).map(f => f.nombre)}
-      />
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            className="mt-4 w-full p-2 bg-emerald-500 text-white rounded hover:bg-emerald-600"
+          >
+            Agregar Integrantes
+          </button>
 
-      <div className="flex space-x-4 mt-4">
-        <button
-          type="submit"
-          onClick={handleSubmit}
-          disabled={buscando}
-          className={`flex-1 p-2 rounded text-white ${
-            buscando ? 'bg-gray-400 cursor-not-allowed' : 'bg-sky-400 hover:bg-sky-500'
-          }`}
-        >
-          Registrar
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setFormData(initialState)
-            setPersonaYaRegistrada(false)
-            setErrorDocumento('')
-            setIntegrantes([])
-          }}
-          className="flex-1 p-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800"
-        >
-          Cancelar
-        </button>
-      </div>
+          {integrantes.length > 0 && (
+            <div className="mt-4 grid gap-2 text-sm">
+              {integrantes.map((i, idx) => (
+                <div key={idx} className="flex justify-between p-2 border rounded bg-gray-50">
+                  <div>
+                    <strong>{i.nombre} {i.apellido}</strong>
+                    {i.dni && ` - DNI: ${i.dni}`}
+                    {i.fechaNacimiento && ` - Nac: ${i.fechaNacimiento}`}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardSection>
+
+        <IntegrantesModal
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onSave={setIntegrantes}
+          integrantes={integrantes}
+          tiposDocumento={[
+            { id: 3, nombre: 'DNI' },
+            { id: 10, nombre: 'PRC' },
+            { id: 1, nombre: 'LC' },
+            { id: 2, nombre: 'LE' },
+            { id: 13, nombre: 'CI' },
+            { id: 0, nombre: 'SD' },
+          ]}
+          tiposParentesco={(tiposFamiliares || []).map(f => f.nombre)}
+        />
+
+        <div className="flex space-x-4 mt-4">
+          <button
+            type="submit"
+            disabled={buscando}
+            className={`flex-1 p-2 rounded text-white ${
+              buscando ? 'bg-gray-400 cursor-not-allowed' : 'bg-sky-400 hover:bg-sky-500'
+            }`}
+          >
+            Registrar
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFormData(initialState)
+              setPersonaYaRegistrada(false)
+              setErrorDocumento('')
+              setIntegrantes([])
+            }}
+            className="flex-1 p-2 rounded bg-gray-300 hover:bg-gray-400 text-gray-800"
+          >
+            Cancelar
+          </button>
+        </div>
+      </form>
     </main>
   )
 }
